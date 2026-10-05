@@ -1,234 +1,308 @@
 # Vibe Coding with Reflector
 
-Build Stellar apps with an AI coding assistant and the Reflector skill.
+Building a Stellar application with Cursor, Claude Code, Codex, or another coding agent?
 
-This guide is for developers who can run a project locally and want help integrating oracle prices. Start with a small, read-only feature, verify its behavior, then build on it. Each prompt below describes a concrete result and the evidence needed to trust it.
+This guide shows you how to give your agent the right Reflector context and build applications using decentralized price data. Start a new project or wire Reflector into an application you already have.
 
-## 1. Give your assistant the skill and the context
+## 1. Give your agent Reflector context
 
-Make the Reflector skill available to your coding assistant, including its `references/` directory. A pasted `SKILL.md` alone does not include the linked implementation guidance. If your assistant cannot find a reference, provide that file or direct it to the official source.
+The [Reflector Agent Skill](https://github.com/Bran18/reflector-skill) gives your coding agent integration instructions and references for:
 
-Use the following opening prompt. Replace the bracketed values before sending it:
+- Pulse and Beam architecture and product selection.
+- Oracle deployments and network-specific asset identifiers.
+- TypeScript and JavaScript with `@reflector/contract-client`.
+- Rust consumer contracts and SEP-40 interfaces.
+- Flare price subscriptions and alerts.
+- Integration patterns and DeFi examples, including liquidation checks, historical pricing, and portfolio rebalancing.
 
-```text
-Use the Reflector skill for this task. Read SKILL.md and only the references
-needed for the implementation.
+### Install the skill
 
-I am building [what the application does].
-Stack: [existing framework, language, and package manager].
-Network: [testnet or mainnet].
-Assets: [symbols or exact Stellar asset identities].
-Feature: [display prices / use prices in a contract / receive alerts].
-Existing project: [relevant files or repository location].
-Done means: [observable behavior].
+With Node.js and npm available, run this from your project directory:
 
-Inspect the project first. Identify the appropriate Reflector product and
-feed. Verify addresses and API signatures against official sources and the
-installed dependency version. Do not invent missing configuration.
-Implement the smallest working feature and report how you verified it.
+```bash
+npx skills add Bran18/reflector-skill
 ```
 
-The skill supplies integration guidance. Your prompt supplies product decisions: what to build, which network to target, and what successful behavior looks like.
+Follow the installer prompts to select your coding agent and the `reflector` skill. To inspect available skills before installing:
 
-## 2. Choose the product and reference
-
-| Your goal | Starting point | Skill reference |
-|---|---|---|
-| Display public oracle prices | Pulse | `references/js-client.md` |
-| Read prices inside a Soroban contract | Pulse or Beam, depending on requirements | `references/rust-consumer.md` |
-| Evaluate faster or customized feeds | Beam | `references/architecture.md` |
-| Receive off-chain price notifications | Flare | `references/flare-dao.md` |
-| Work on governance | DAO | `references/flare-dao.md` |
-| Select oracle addresses and asset keys | Deployment discovery | `references/deployments.md` |
-
-These paths are relative to the Reflector skill directory. Read deployment guidance alongside the reference for your implementation.
-
-Pulse publishes at a five-minute interval. Consumer contracts read previously published oracle state; a read does not fetch a fresh exchange quote. Use the feed interval when deciding whether a product meets your application's needs. See the [official contract overview](https://github.com/reflector-network/reflector-contract#how-it-works).
-
-**Version check:** the supplied skill describes Beam fees per read, while the current [official JS client README](https://github.com/reflector-network/contract-client-js#price-oracles---pulseclient-and-beamclient) documents prepaid access through `track` and `trackedUntil`. Have the assistant verify the target deployment's fee and authorization behavior. Do not combine examples from different contract versions.
-
-## 3. First project: a BTC price reader
-
-Use a terminal script to establish that configuration and asset selection work before adding a UI.
-
-```text
-Use the Reflector skill to create a small TypeScript script that reads BTC
-from a Pulse CEX/DEX feed on Stellar testnet.
-
-Read references/js-client.md and references/deployments.md. Use the official
-@reflector/contract-client package and check compatible dependencies.
-
-Create an .env.example with RPC URL, public account key, oracle contract ID,
-and explicit network passphrase. Validate configuration at startup.
-The script must not require a secret key or wallet signature for price reads.
-
-Verify the oracle address from an official source, then query its asset
-registry and metadata. Confirm BTC is supported before reading its price.
-Print the network, oracle address, asset identity, base denomination,
-formatted price, quote timestamp, and quote age.
-
-Keep price arithmetic in bigint or another exact representation.
-Handle missing quotes and RPC errors explicitly. Use a configurable maximum
-age; for this tutorial, start with 600 seconds and label it a demo policy.
-Reject future timestamps as invalid for this demo.
-
-Include a run command. Run a live smoke check if configuration and network
-access are available. Otherwise report the exact missing input and clearly
-separate mocked results from live results.
+```bash
+npx skills add Bran18/reflector-skill --list
 ```
 
-The official JS client simulates read calls; state-changing calls require signing. Its public timestamps use seconds. These details matter when connecting the script and calculating age. See [client initialization and timestamp documentation](https://github.com/reflector-network/contract-client-js#initialization).
+The command uses the GitHub source format documented by the [Skills CLI](https://github.com/vercel-labs/skills#install-a-skill). The repository contains the skill at [skills/reflector/SKILL.md](https://github.com/Bran18/reflector-skill/blob/main/skills/reflector/SKILL.md), alongside its reference files.
 
-**Checkpoint:** you should have a reproducible command and output identifying the actual feed. A plausible price alone is insufficient evidence that the correct network and asset were selected.
-
-## 4. Turn the reader into an interface
-
-Once the reader works, extend the existing project:
+Then ask your agent:
 
 ```text
-Use the Reflector skill and reuse the verified price reader to add a price
-card to this app. Follow the existing framework and component conventions.
-
-Show price, base denomination, last update, quote age, and network.
-Implement loading, available, stale, unavailable, and connection-error states.
-Keep any last-known price visibly labeled with its timestamp when stale.
-Never replace a missing quote with zero or generated sample data.
-
-Choose a refresh and caching policy appropriate to the feed interval.
-Recalculate age as time passes so a cached quote cannot remain marked fresh.
-Keep private RPC credentials on the server. Do not add a wallet connection
-solely to display a public Pulse quote.
-
-Verify the state transitions using controlled fixtures and report whether
-the live data path was also exercised.
+Find and read the installed Reflector skill. Tell me which skill file you
+loaded and which references apply to this project. If you cannot find it,
+say so before implementing the integration.
 ```
 
-Pair Reflector with the `dapp` skill when the feature also needs wallets or transaction submission. Use the `data` skill when the task requires additional Stellar RPC queries. Ask for related skills only when the work needs them.
+If your environment does not support the installer, provide the agent with the repository's `skills/reflector/` directory, including `references/`, and ask it to read `SKILL.md` first.
 
-## 5. Use prices inside a smart contract
+The skill provides context; your prompt defines the application. Ask the agent to verify deployment addresses and API signatures against current official sources and the versions used in your project.
 
-For a contract, give the assistant the operation that depends on the quote and the required failure behavior. A dashboard's displayed price must not become an unverified input to financial contract logic.
+## 2. Tell the agent what you're building
+
+Start with the outcome you want and enough context to choose the right integration. Replace bracketed values before sending a prompt.
+
+### Building something new
 
 ```text
-Use the Reflector and smart-contracts skills to add a Pulse oracle adapter
-to this Soroban project. Read references/rust-consumer.md and verify the
-consumer interface against the target contract version.
+I'm building a Stellar application that needs XLM price data.
 
-The adapter should return a validated quote or a typed failure.
-Use configurable oracle and asset identities. Validate the expected base
-denomination. Handle both unavailable quotes and failed cross-contract calls.
-Do not unwrap an optional quote in a production path.
+Use the Reflector skill for the integration.
+Stack: [TypeScript script / Next.js / Rust and Soroban].
+Network: [testnet / mainnet].
+Price source: [Stellar pubnet market / Stellar testnet market / help me choose].
+Price denomination: [USD / USDC / help me choose].
+Goal: [describe what someone should be able to do].
 
-Compare the quote timestamp with ledger time. Reject future timestamps,
-quotes beyond the configured maximum age, and nonpositive prices for this
-valuation use case. Make the age boundary explicit and test it.
+Before writing code:
+1. Identify the appropriate Reflector product, oracle, and exact asset key.
+2. Explain which interface we'll use and why.
+3. Identify the required dependencies and configuration.
+4. Explain how decimals, timestamps, and unavailable prices will be handled.
 
-Read oracle decimals. Document token units separately from price units.
-Use checked scaling, multiplication, and division, and specify rounding.
-Return explicit errors for unsupported scales or arithmetic overflow.
-
-Test fresh, missing, stale, future-dated, zero, and negative quotes;
-unexpected base denomination; cross-contract failures; and overflow.
-Prove the dependent operation makes no state change when validation fails.
-Run the project's relevant tests and build, then report the results.
+Then implement the smallest working version with setup instructions.
+Do not invent contract addresses or Reflector APIs. Use the skill's
+references and confirm deployment details against official sources.
+Run the relevant checks and distinguish live results from mocked results.
 ```
 
-Reflector prices use integer encoding with precision obtained from `decimals()`. Freshness should be evaluated against ledger time inside a contract. See the [official contract interface and usage](https://github.com/reflector-network/reflector-contract#usage).
-
-The 600-second threshold from the reader is a tutorial choice. Set a production threshold based on the operation, feed behavior, and acceptable delay. Also define who can change oracle configuration and protect that authority.
-
-## 6. Debug with evidence
-
-Give the assistant the exact error and enough configuration to reproduce it. Redact secrets and credential-bearing RPC URLs.
+### Wiring up an existing application
 
 ```text
-Use the Reflector skill to diagnose this failure before changing code.
+I already have a Stellar application. Wire Reflector into its existing
+price-data flow using the Reflector skill.
 
-Expected behavior: [what should happen].
-Actual behavior: [exact error or unexpected result].
-Network and feed family: [values].
-Oracle contract ID and asset key: [public values].
-Installed package versions: [versions].
-Relevant code and reproduction command: [details].
+Feature: [portfolio view / collateral valuation / price chart / other].
+Current price source: [mock data / API / existing oracle / none].
+Relevant files: [paths, or ask the agent to locate them].
+Network: [testnet / mainnet].
+Assets and desired denomination: [values].
 
-Check network configuration, deployment identity, assets(), asset encoding,
-base denomination, quote timestamp, decimals, and RPC diagnostics.
-Explain the evidence for the cause, implement a focused fix, and rerun the
-reproduction. Do not silently switch feeds or substitute mock prices.
+Inspect the project and trace how prices reach this feature. Identify the
+best integration point and explain the changes before implementing them.
+Reuse the existing stack, component conventions, and configuration system.
+Preserve unrelated behavior and identify any units or return types that
+must change.
+
+Replace the selected price source with a Reflector adapter. Include the
+quote timestamp, asset identity, and base denomination in its result.
+Handle stale or missing quotes explicitly. Do not silently substitute
+mock data or a different provider when Reflector is unavailable.
+
+Update the relevant tests and setup instructions. Show what changed,
+how to run it, and which checks actually passed.
 ```
 
-| Symptom | Investigation |
+**Why ask about the source as well as the network?** An oracle deployed on testnet can report prices from the pubnet market. “XLM on testnet” does not fully specify the desired feed. Have the agent confirm the exact asset using `assets()` and the denomination using `base()`.
+
+## 3. Pick what you're building
+
+Choose a prompt below and add your stack, network, assets, and required behavior. Each example should produce a small feature you can inspect and run.
+
+### Read a price
+
+```text
+Add the latest XLM price from Reflector to my TypeScript Stellar application.
+Use the Reflector skill and @reflector/contract-client.
+
+Select the Pulse feed for my chosen network and market. Confirm XLM's exact
+asset key from assets(); do not assume a ticker works for every feed.
+
+Display the current price, base denomination, quote timestamp, and feed
+information. Keep price arithmetic exact and use the oracle's decimals.
+Add loading, stale, unavailable, and RPC-error states. Make the maximum
+quote age configurable and explain the chosen demo value.
+
+Include configuration examples and a command to verify a live read.
+```
+
+**Done when:** you can see a real quote with its source and timestamp, and missing data never appears as a zero price.
+
+### Consume a price in a Soroban contract
+
+```text
+Build a Soroban contract that consumes Reflector price data using SEP-40.
+Use the Reflector skill's Rust consumer reference and the project's current
+Soroban SDK version.
+
+Verify the target oracle interface and implement a small quote adapter.
+Check the asset and base denomination. Read decimals from the oracle.
+Validate the quote against ledger time and handle absent quotes and failed
+cross-contract calls. Return explicit failures for unusable data.
+
+Use checked arithmetic, document units and rounding, and test fresh,
+stale, missing, and future-dated quotes plus arithmetic boundaries.
+Provide build and test commands and a testnet integration procedure.
+```
+
+**Done when:** the contract returns a validated quote or an explicit failure, with tests demonstrating both paths.
+
+### Calculate a liquidation health check
+
+```text
+I'm building a collateralized lending protocol. Use the Reflector skill
+to value collateral and implement a liquidation health check.
+
+Inspect existing collateral, debt, token units, and risk configuration.
+Identify which assets need oracle prices and normalize their values to a
+common denomination. Use the protocol's liquidation threshold and rounding
+policy; if those are missing, ask me to define them.
+
+Return health status and the values used to calculate it. Reject missing,
+stale, future-dated, or nonpositive quotes. Use checked math and define
+zero-debt behavior. Test healthy, unhealthy, and boundary positions, as well
+as oracle failures. Invalid data must not authorize liquidation.
+
+Implement the health check only; transaction execution is a separate task.
+```
+
+**Done when:** tests explain exactly when a position crosses the liquidation boundary and prove oracle failures cannot create an actionable result.
+
+### Build a portfolio rebalancing example
+
+```text
+Build a portfolio rebalancing example using Reflector prices to calculate
+the current value and allocation of each asset. Use the Reflector skill.
+
+Inputs: [assets, balances, token decimals, and target allocations].
+Verify supported feeds and convert values into one base denomination.
+Calculate current weights, deviation from targets, and proposed adjustments.
+Validate that target allocations total 100% and define zero-value behavior.
+
+Handle unsupported assets, stale quotes, missing prices, and rounding.
+Mark incomplete valuations clearly and block rebalance recommendations
+when required prices are unavailable. Produce a preview, not signed trades.
+```
+
+**Done when:** changing balances or targets updates the preview, and incomplete price data blocks a misleading recommendation. Oracle valuations are not executable swap quotes; a trading implementation must also account for liquidity, slippage, and fees.
+
+### Use historical prices
+
+```text
+Use Reflector historical observations rather than only the latest price.
+Use the Reflector skill to select the appropriate historical interface.
+
+Goal: [chart / volatility calculation / time-weighted average].
+Asset and network: [values].
+Requested time window: [duration].
+
+Verify record limits, feed resolution, and available retention. Keep actual
+observation timestamps, sort observations, and expose gaps or insufficient
+history. Do not fabricate missing points.
+
+If calculating TWAP, define the time window, duration weights, and gap
+policy. Do not call a simple sample average TWAP unless its assumptions
+are valid. Test the calculation with a small, hand-checkable dataset.
+```
+
+**Done when:** the chart or calculation identifies its actual coverage and handles insufficient history explicitly.
+
+### React to a price condition with Flare
+
+```text
+I need my application to react when a price condition is reached.
+Use the Reflector skill to determine whether Flare is appropriate.
+
+Asset: [identity].
+Condition: [describe the trigger].
+Desired reaction: [notification / update application state / other].
+Environment and callback endpoint: [details].
+
+Read the Flare reference. Explain supported trigger semantics, subscription
+costs, and required configuration. If Flare fits, implement the integration
+using the current API and supported webhook-verification mechanism.
+
+Handle retries, duplicate events, subscription expiry, and insufficient
+balance. Test the callback with representative payloads and document the
+steps required to activate and verify a real subscription.
+```
+
+**Done when:** the callback is tested and the subscription's activation state is explicit. A working local callback alone does not prove live delivery.
+
+The skill routes these tasks through its [integration references and examples](https://github.com/Bran18/reflector-skill#what-it-covers). Use related Stellar skills for contract development or wallet integration when those are part of the feature.
+
+## 4. Write prompts that lead to useful implementations
+
+A useful prompt includes:
+
+**What you're building + asset/feed + environment + required behavior + safety requirements.**
+
+**Too vague:**
+
+```text
+Add Reflector to my app.
+```
+
+**Better:**
+
+```text
+I'm building a Next.js Stellar application on testnet.
+I need XLM prices from the Stellar pubnet market using Reflector Pulse.
+
+Use @reflector/contract-client and the Reflector skill. Identify the testnet
+oracle that reports the intended market, confirm the XLM asset key, and
+show the feed's actual base denomination.
+
+Add a price card to the existing dashboard with:
+- current price
+- last update timestamp
+- feed and network information
+
+Handle decimals without losing precision. Detect stale data with an
+explicit maximum age and refresh the status as cached data ages.
+Show unavailable and connection-error states. Keep private RPC credentials
+on the server.
+
+Use official deployment information and verify it. Do not guess addresses.
+Run the relevant checks and tell me whether the live read succeeded.
+```
+
+Work in small steps: establish one verified read, connect it to the feature, then test failure behavior. For an existing application, ask the agent to inspect the current data flow before selecting where to make changes.
+
+When something fails, provide the exact error, relevant code, dependency versions, network, oracle address, and asset key. Redact credentials. Ask for the cause and a focused fix before requesting broader changes.
+
+## 5. Don't blindly accept generated code
+
+AI coding agents can generate convincing code that is still incorrect. Review the integration with evidence before shipping.
+
+| Check | What to verify |
 |---|---|
-| Missing quote or `AssetMissing` | Match the asset variant and exact value against `assets()` |
-| DEX asset cannot be found by ticker | Check whether the feed expects a SAC `C…` address |
-| Price differs by orders of magnitude | Inspect oracle decimals and token amount units separately |
-| Quote appears extremely old or future-dated | Check seconds versus milliseconds and the clock source |
-| Works on one network only | Verify RPC, passphrase, deployment, and asset keys together |
-| Beam access fails | Verify caller, access expiry, authorization, and deployed fee model |
+| Correct network? | RPC URL, network passphrase, and deployment agree. |
+| Correct oracle contract? | The address was checked against an official source for the intended product and market. |
+| Correct asset/feed? | The exact asset variant and identifier match `assets()`; the base denomination is understood. |
+| Correct decimals? | Precision comes from `decimals()`; token amount units are handled separately, with exact arithmetic. |
+| Timestamp checked? | Public timestamps use seconds; contract checks use ledger time; future timestamps have an explicit policy. |
+| Stale data handled? | The maximum age is intentional, and cached quotes can become stale without another successful fetch. |
+| Correct read method? | `lastprice()` in Rust / `lastPrice()` in JS serves latest-quote needs; `prices()` serves multiple observations. Historical limits and coverage are checked. |
+| Failure state handled? | Missing quotes, unsupported assets, and RPC failures produce explicit outcomes, never fabricated prices. |
+| Financial safeguards appropriate? | Units, rounding, overflow, risk thresholds, authorization, and failure behavior are tested for the actual operation. |
+| Tested on the intended network? | Mock tests and live integration checks are reported separately; the selected deployment and assets were exercised. |
 
-The supplied deployment reference distinguishes the network hosting the oracle from the market it reports. A testnet oracle reporting pubnet DEX prices can require pubnet asset keys. Verify the selected feed rather than mechanically replacing every address with a testnet equivalent.
+Reflector consumers read published oracle state. Querying more frequently does not itself refresh that state. The [official contract repository](https://github.com/reflector-network/reflector-contract#how-it-works) explains the data model; the [official JS client](https://github.com/reflector-network/contract-client-js) documents client methods and timestamp units. Verify paid access and authorization requirements against the deployed version, especially for Beam and Flare.
 
-## 7. Prompts for the next feature
-
-**Portfolio valuation**
-
-```text
-Use the Reflector skill to add portfolio valuation. Discover supported
-assets and verify each quote's base denomination. Specify token decimals
-and rounding. Show unsupported or stale positions explicitly, and mark the
-total incomplete if any required position cannot be valued. Do not add
-values in different base denominations without an explicit conversion.
-```
-
-**Historical prices**
+Use this final review prompt:
 
 ```text
-Use the Reflector skill to add a historical price chart. Verify the API's
-record limits and available retention. Label gaps and timestamps accurately.
-If calculating an average, name the method. For a time-weighted average,
-define the window, duration weights, ordering, and missing-data policy.
-Do not label an ordinary sample mean TWAP without verifying its assumptions.
+Review this Reflector integration against the checklist in this guide.
+Inspect the implementation and tests. For every issue, identify the file,
+the failure scenario, and a concrete fix.
+
+Report which checks passed, which failed, and which were not run. Include
+the selected network, oracle, asset key, base denomination, dependency
+versions, and the outcome of any live test. Do not treat mock tests as proof
+that the deployed integration works.
 ```
 
-**Flare alerts**
+## Keep building
 
-```text
-Use the Reflector skill and references/flare-dao.md to implement a Flare
-alert integration. Verify the current subscription API, fee requirements,
-payload format, and supported webhook verification mechanism.
-Define the asset, threshold, heartbeat, expiry, and callback endpoint.
-Handle duplicate events and retries. Test locally before activating a paid
-subscription. Report any missing configuration instead of inventing it.
-```
+- [Reflector Agent Skill](https://github.com/Bran18/reflector-skill): integration context for your coding agent.
+- [Reflector documentation](https://reflector.network/docs): product and interface documentation.
+- [Reflector examples](https://reflector.network/docs/examples): application patterns to explore.
+- [Reflector Market Board](https://github.com/Bran18/reflector-market-board): reference application linked by the skill.
 
-## 8. Review before shipping
-
-```text
-Review this implementation using the Reflector skill and the relevant
-Stellar skills. Inspect the code and tests, not just the README.
-
-Check feed identity and source, exact asset encoding, base denomination,
-missing-price behavior, timestamp units, freshness boundaries, precision,
-rounding, overflow, and RPC failures. Check authorization for configuration
-changes and any paid or state-changing operation.
-
-For financial operations, verify that invalid oracle data blocks the
-operation. For a UI, verify that unavailable and stale states remain clear.
-
-Return actionable findings with file locations and fixes. Distinguish
-tests actually run, live checks actually performed, and unverified claims.
-```
-
-Before switching networks, verify the deployment, RPC, passphrase, supported asset keys, and base denomination again. Record the selected contract, dependency versions, verification date, and smoke-check results with the project. Assign responsibility for monitoring feed availability and retention or access expiry where applicable.
-
-## Sources and scope
-
-Prepared October 5, 2026, using the supplied Reflector skill and its JavaScript, Rust, and deployment references, with checks against the official repositories below.
-
-- [Reflector contract repository](https://github.com/reflector-network/reflector-contract)
-- [Reflector JavaScript client](https://github.com/reflector-network/contract-client-js)
-- [Stellar oracle providers](https://developers.stellar.org/docs/data/oracles/oracle-providers)
-- [Reflector Pulse deployment page](https://reflector.network/pulse)
-- [Reflector interface documentation](https://reflector.network/docs/interface)
-
-The Reflector website pages required JavaScript in the research environment, so their deployment contents were not independently verified. This guide deliberately leaves address discovery to each implementation. No live oracle calls, generated application builds, or contract tests were performed while writing this guide.
+This is a community guide. Verify current deployments and dependency compatibility when implementing an example.

@@ -1,10 +1,10 @@
 # Reflector Vibe Coding Guide
 
-A practical guide to building Stellar applications with an AI coding assistant and the Reflector skill.
+Build a new Stellar application or connect Reflector price data to an existing one using your coding agent and the Reflector Agent Skill.
 
 ## Read the guide
 
-[Vibe Coding with Reflector](reflector-vibe-coding-guide.md) includes copyable prompts for a first price reader, UI integration, Soroban contracts, troubleshooting, and implementation reviews.
+[Vibe Coding with Reflector](reflector-vibe-coding-guide.md) covers skill installation, prompts for new and existing projects, and six build paths: price reads, Soroban contracts, liquidation health checks, portfolio rebalancing, historical prices, and Flare alerts. It also teaches prompt structure and provides a review checklist.
 
 ## Project status
 
