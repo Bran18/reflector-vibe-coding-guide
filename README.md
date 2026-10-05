@@ -27,6 +27,21 @@ Oracle contracts expose price data through [SEP-40](https://github.com/stellar/s
 
 ## Which Reflector product do I need?
 
+Start with how your application needs to receive data. A project can combine on-chain reads and off-chain alerts.
+
+```mermaid
+flowchart TD
+    Need["What does the feature need?"] --> Read["Read an on-chain price"]
+    Need --> Notify["Receive an off-chain notification"]
+    Read --> Fit{"Do public feeds and their update interval fit?"}
+    Fit -->|Yes| Pulse["Start with Pulse"]
+    Fit -->|No| Beam["Evaluate Beam provisioning and access"]
+    Notify --> Flare["Evaluate Flare trigger support"]
+    Pulse --> Verify["Verify assets, network, and deployment"]
+    Beam --> Verify
+    Flare --> Subscription["Verify subscription and callback requirements"]
+```
+
 | Product | Start here when you need… | Integration consideration |
 |---|---|---|
 | **Pulse** | Public on-chain prices for a dashboard or contract | Public feeds use a five-minute update interval. Check feed availability and retention. |

@@ -47,6 +47,21 @@ The skill provides context; your prompt defines the application. Ask the agent t
 
 Start with the outcome you want and enough context to choose the right integration. Replace bracketed values before sending a prompt.
 
+```mermaid
+flowchart TD
+    Context["Load the Reflector skill"] --> Project{"Where are you starting?"}
+    Project -->|New project| Scope["Define one useful feature"]
+    Project -->|Existing app| Inspect["Trace the current price-data flow"]
+    Scope --> Select["Verify product, feed, network, and asset"]
+    Inspect --> Select
+    Select --> Build["Implement one integration"]
+    Build --> Check["Test valid quotes and failure states"]
+    Check --> Live["Check the intended deployment"]
+    Live --> Review["Review evidence before extending the feature"]
+```
+
+Both paths meet at the same checkpoint: establish which data the feature needs before generating integration code.
+
 ### Building something new
 
 ```text
@@ -72,6 +87,29 @@ Run the relevant checks and distinguish live results from mocked results.
 ```
 
 ### Wiring up an existing application
+
+Keep the Reflector-specific calls in an adapter so the rest of the feature receives a consistent result: a validated quote or an explicit failure. This diagram shows an off-chain application; a Soroban consumer invokes the oracle on-chain instead of using the JavaScript client.
+
+```mermaid
+sequenceDiagram
+    participant Feature as Existing feature
+    participant Adapter as Price adapter
+    participant Client as PulseClient
+    participant RPC as Stellar RPC
+    Feature->>Adapter: Request a quote for a configured asset
+    Adapter->>Client: Read metadata and latest price
+    Client->>RPC: Simulate calls to the oracle contract
+    RPC-->>Client: Published oracle data or failure
+    Client-->>Adapter: Decoded result or error
+    Adapter->>Adapter: Validate identity, units, and freshness
+    alt Usable quote
+        Adapter-->>Feature: Exact price, denomination, and timestamp
+    else Missing, stale, or failed read
+        Adapter-->>Feature: Explicit unavailable or error result
+    end
+```
+
+The feature owns the response to a failure: a UI can display an unavailable state, while a dependent financial action must stop. Reading through RPC does not cause Reflector nodes to publish a new observation.
 
 ```text
 I already have a Stellar application. Wire Reflector into its existing
@@ -269,6 +307,29 @@ When something fails, provide the exact error, relevant code, dependency version
 ## 5. Don't blindly accept generated code
 
 AI coding agents can generate convincing code that is still incorrect. Review the integration with evidence before shipping.
+
+For a valuation or financial action, use this decision flow. The configured maximum age and rounding policy belong to your application.
+
+```mermaid
+flowchart TD
+    Read["Read quote and oracle metadata"] --> Available{"Read succeeded and quote exists?"}
+    Available -->|No| Fail["Return explicit failure"]
+    Available -->|Yes| Identity{"Expected oracle, asset, and base?"}
+    Identity -->|No| Fail
+    Identity -->|Yes| Fresh{"Timestamp valid and within maximum age?"}
+    Fresh -->|No| Fail
+    Fresh -->|Yes| Value{"Positive price and supported precision?"}
+    Value -->|No| Fail
+    Value -->|Yes| Math{"Checked arithmetic and rounding succeed?"}
+    Math -->|No| Fail
+    Math -->|Yes| Rules["Apply operation-specific risk and authorization checks"]
+    Rules --> Allowed{"Operation permitted?"}
+    Allowed -->|No| Stop["Block the dependent action"]
+    Allowed -->|Yes| Use["Use the validated result"]
+    Fail --> Stop
+```
+
+A valid quote is only one input to an operation's checks. For a display-only feature, show a clear stale or unavailable state; label any last-known value with its timestamp.
 
 | Check | What to verify |
 |---|---|
